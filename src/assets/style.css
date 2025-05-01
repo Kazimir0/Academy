@@ -1,0 +1,135 @@
+.product-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+    position: relative; /* Necesar pentru a poziționa absolut butonul */
+    overflow: hidden; /* Ascunde butonul inițial */
+    background-color: #ffffff; /* White background */
+}
+
+.product-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px); /* Subtle lift effect */
+}
+
+.product-card-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background-color: #f1f1f1; /* Light gray background for images */
+}
+
+.product-card img {
+    max-width: 100%;
+    height: auto;
+    max-height: 150px;
+    object-fit: contain;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; /* Animație pentru imagine */
+}
+
+.product-card:hover img {
+    transform: scale(1.05); /* Mărire subtilă la hover */
+    opacity: 0.9; /* Reducere subtilă a opacității */
+}
+
+.product-card-body {
+    padding: 15px;
+    text-align: center;
+}
+
+.product-card-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #343a40; /* Dark gray for titles */
+    margin-bottom: 5px;
+}
+
+.product-card-price {
+    color: #28a745; /* Green for price */
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.view-details-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 123, 255, 0.9); /* Blue with slight transparency */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0; /* Inițial ascuns */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    z-index: 10; /* Asigură că este deasupra imaginii */
+}
+
+.product-card:hover .view-details-button {
+    opacity: 1; /* Afișează butonul la hover */
+    transform: translate(-50%, -50%) scale(1.1); /* Slight zoom on hover */
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+}
+
+.navbar {
+    background-color: #007bff !important; /* Primary blue */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar .nav-link {
+    color: #ffffff !important; /* White links */
+    transition: color 0.3s ease;
+}
+
+.navbar .nav-link:hover {
+    color: #ffc107 !important; /* Yellow hover effect */
+}
+
+.navbar .navbar-nav .nav-item:last-child {
+    margin-left: auto; /* Push the last item (Coșul Meu) to the right */
+}
+
+.btn {
+    border-radius: 20px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    background-color: #0056b3 !important; /* Darker blue for hover */
+}
+
+.upload-box {
+    border: 2px dashed #6c757d;
+    padding: 20px;
+    text-align: center;
+    background-color: #f8f9fa;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.upload-box:hover {
+    background-color: #e9ecef;
+    border-color: #007bff;
+}
+
+.alert {
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 1rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Arial', sans-serif;
+    color: #343a40;
+}
+
+.row.g-4 {
+    row-gap: 1.5rem; /* Add spacing between rows */
+}

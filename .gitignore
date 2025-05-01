@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# SQL Server data folder
+sqlserver_data/
+
+# Test folder
+tests/
+
+# Poetry files
+poetry.lock
+pyproject.toml
+
+# User uploads
+static/uploads/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Logs
+*.log

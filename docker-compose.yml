@@ -1,0 +1,35 @@
+# version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: python_app
+    ports:
+      - "5000:8050"
+    depends_on:
+      - sqlserver
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./static:/app/static
+    working_dir: /app
+    command: poetry run python src/app.py
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=DB_PASSWORD 
+    volumes:
+      - ./sqlserver_data:/var/opt/mssql/data
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "yourStrong(!)Password", "-Q", "SELECT 1"]
+      interval: 10s
+      retries: 10
+
+volumes:
+  sqlserver_data:
