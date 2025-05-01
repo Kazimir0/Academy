@@ -1,1 +1,1 @@
-i want to add a carousel to main page with some products for visuals and some reviews from my products to main page.
+
