@@ -1,21 +1,18 @@
 import dash,json, os
-
 from dash import html, dcc, callback_context
+from layout import app_layout
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from products import add_product, fetch_comments_by_product_id, fetch_product_by_id, fetch_products,delete_product, save_comment_to_db, save_image_to_db,update_product
+from products import add_product, delete_comment_from_db, fetch_comments_by_product_id, fetch_product_by_id, fetch_products,delete_product, save_comment_to_db, save_image_to_db,update_product
 from db_connection import get_connection
 from layouts.home_layout import home_layout
 from layouts.product_list_layout import product_list_layout
-from layouts.product_details_layout import product_details_layout
 from layouts.add_product_layout import product_add_layout
 from layouts.edit_product_layout import edit_product_layout
 from layouts.cart_layout import cart_layout
 from layouts.navbar import navbar
-from layouts.orders_layout import orders_layout
 from datetime import datetime
 import pytz
-
 from PIL import Image
 from flask import Flask, send_from_directory
 
@@ -46,83 +43,8 @@ def catch_all(path):
     # Redirect all unknown routes to the Dash app
     return app.index()
     
-## Layout-ul aplicației
-app.layout = html.Div(
-    children=[
-        dcc.Location(id="url", refresh=False),
-        navbar,
-        html.Div(id="page-content", className="container mt-4"),
-        html.Div(id="edit-product-page-container", style={'display': 'none'}),
-
-        html.Div(id="hidden-components", style={"display": "none"}, children=[
-            # Stores
-            dcc.Store(id="edit-product-data"),
-            dcc.Store(id="current-product-data"),
-            dcc.Store(id="delete-list-message-store"),
-            dcc.Store(id="selected-product-id"),
-            dcc.Store(id="current-page", data=1),
-            dcc.Store(id="cart-items-store", storage_type="local"),
-            html.Div(id="cart-feedback"),
-
-            # INPUTURI - Adăugare produs
-            dcc.Input(id="search-input"),
-            dcc.Input(id="product-name"),
-            dcc.Input(id="product-price"),
-            dcc.Textarea(id="product-description"),
-            dcc.Upload(id="upload-image"),
-            html.Button(id="add-product-button"),
-
-            # OUTPUTURI - Add product
-            html.Div(id="add-product-message"),
-            html.Div(id="error-message"),
-            html.Div(id="error-name"),
-            html.Div(id="error-price"),
-            html.Div(id="error-description"),
-            html.Div(id="error-image"),
-            html.Div(id="output-image-upload"),
-
-            # INPUTURI - Editare produs
-            dcc.Input(id="edit-product-name"),
-            dcc.Input(id="edit-product-price"),
-            dcc.Textarea(id="edit-product-description"),
-            dcc.Upload(id="edit-upload-image"),
-            html.Button(id="save-edit-button"),
-            html.Button(id="cancel-edit-button"),
-
-            # OUTPUTURI - Editare produs
-            html.Div(id="edit-error-message"),
-            html.Div(id="edit-error-name"),
-            html.Div(id="edit-error-price"),
-            html.Div(id="edit-error-description"),
-            html.Div(id="edit-error-image"),
-            html.Div(id="edit-output-image-upload"),
-            html.Div(id="edit-success-message"),
-
-            # Butoane globale (detalii)
-            html.Button(id="delete-product-button"),
-            html.Button(id="add-to-cart-button"),  # Add this button here
-            html.Button(id="finalize-order-button", style={"display": "none"}),
-
-            # Confirm Dialog
-            dcc.ConfirmDialog(id="confirm-delete", message="", displayed=False),
-
-            # Diverse
-            html.Div(id="product-details"),
-            html.Div(id="product-details-container"),
-            html.Div(id="edit-delete-buttons"),
-            html.Div(id="delete-product-message"),
-            html.Div(id="product-list"),
-            html.Div(id="page-number"),
-            html.Div(id="delete-list-message"),
-
-            # Paginare
-            html.Button(id="prev-button"),
-            html.Button(id="next-button"),
-            html.Button(id="edit-product-button", style={"display": "none"}),
-        ]),
-        dcc.ConfirmDialog(id="delete-confirm-dialog"),  # Add this line
-    ]
-)
+## Main layout of the app
+app.layout = app_layout
 
 @app.callback(
     [
@@ -149,7 +71,7 @@ app.layout = html.Div(
 def handle_page_and_save_changes(pathname, save_clicks, name, price, description, image_content, product_data):
     ctx = callback_context
 
-    # --- Navigare pe baza URL-ului ---
+    # Redirect based on URL changes 
     if ctx.triggered and "url" in ctx.triggered[0]["prop_id"]:
         if pathname == "/":
             return home_layout, None, None, {"display": "none"}, None, {"display": "none"}
@@ -247,8 +169,8 @@ def handle_page_and_save_changes(pathname, save_clicks, name, price, description
             cursor.execute("""
                 SELECT 
                     id,  -- Order ID
-                    STRING_AGG(product_name + '|' + CAST(price AS NVARCHAR), ',') AS product_details,  -- Aggregate product details
-                    SUM(price) AS total_price,  -- Calculate total price
+                    STRING_AGG(product_name + '|' + CAST(price AS NVARCHAR), ',') AS product_details, -- Concatenate product names and prices
+                    SUM(price) AS total_price,
                     order_date
                 FROM orders
                 GROUP BY id, order_date
@@ -270,7 +192,7 @@ def handle_page_and_save_changes(pathname, save_clicks, name, price, description
                     "order_id": row[0],  # Order ID
                     "total_price": row[2],  # Total price
                     "order_date": convert_to_local_time(row[3], pytz.timezone("Europe/Bucharest")),
-                    "product_name": product_name  # Add concatenated product details
+                    "product_name": product_name 
                 })
 
             from layouts.orders_layout import orders_layout
@@ -279,7 +201,7 @@ def handle_page_and_save_changes(pathname, save_clicks, name, price, description
         else:
             return html.H1("404 - Pagina nu a fost găsită", className="text-center mt-5"), None, None, {"display": "none"}, None, {"display": "none"}
 
-    # --- Salvare modificări produs ---
+    #  Save changes for products
     if ctx.triggered and "save-edit-button" in ctx.triggered[0]["prop_id"]:
         if not save_clicks or not product_data:
             raise PreventUpdate
@@ -302,7 +224,7 @@ def handle_page_and_save_changes(pathname, save_clicks, name, price, description
                 {"display": "none"}
             )
 
-        # Imagine nouă
+        # New image processing
         image_url = product_data.get("image_url")
         if image_content:
             try:
@@ -359,11 +281,11 @@ def handle_page_and_save_changes(pathname, save_clicks, name, price, description
      Output("stars-rating", "value")],
     [Input("submit-comment-button", "n_clicks"),
      Input({'type': 'delete-comment', 'index': dash.ALL}, 'n_clicks'),
-     Input("url", "pathname")],  # Added Input for URL changes
+     Input("url", "pathname")],
     [State("comment-input", "value"),
      State("stars-rating", "value"),
      State({'type': 'delete-comment', 'index': dash.ALL}, 'id')],
-    prevent_initial_call=False  # Ensure this callback runs on page load
+    prevent_initial_call=False
 )
 def handle_comments_and_deletion(submit_clicks, delete_clicks, pathname, comment, stars, delete_ids):
     if not pathname.startswith("/product/"):
@@ -392,52 +314,6 @@ def handle_comments_and_deletion(submit_clicks, delete_clicks, pathname, comment
     comments = fetch_comments_by_product_id(product_id)
     return generate_comment_list(comments), None, "", None
 
-# Helper function to generate the comment list with delete buttons
-def generate_comment_list(comments):
-    local_tz = pytz.timezone("Europe/Bucharest")
-    return [
-        html.Div(
-            className="border p-3 mb-2 rounded",
-            children=[
-                html.Div("★" * c["stars"] + "☆" * (5 - c["stars"]), className="text-warning mb-1"),  # Star rating
-                html.P(c["text"], className="mb-1"),
-                html.Small(
-                    f"Data: {convert_to_local_time(c['timestamp'], local_tz)}",  # Use a helper function
-                    className="text-muted"
-                ),
-                html.Button(
-                    "Șterge",
-                    id={'type': 'delete-comment', 'index': c["id"]},
-                    className="btn btn-danger btn-sm mt-2"
-                )
-            ]
-        )
-        for c in comments
-    ]
-
-def convert_to_local_time(timestamp, local_tz):
-    """Helper function to safely convert a timestamp to local time."""
-    if isinstance(timestamp, str):
-        try:
-            utc_time = datetime.fromisoformat(timestamp)
-        except ValueError:
-            return "Invalid timestamp"
-    elif isinstance(timestamp, datetime):
-        utc_time = timestamp
-    else:
-        return "Invalid timestamp"
-
-    # Convert to local timezone
-    return utc_time.astimezone(local_tz).strftime('%Y-%m-%d %H:%M:%S')
-
-# Function to delete a comment from the database
-def delete_comment_from_db(comment_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM comments WHERE id = ?", (comment_id,))
-    conn.commit()
-    cursor.close()
-
 # Store for cart items
 cart_items = []
 
@@ -446,7 +322,7 @@ cart_items = []
     [Output("cart-items", "children"),
      Output("cart-total", "children")],
     [Input("url", "pathname"),
-     Input("cart-items-store", "data")],  # Use the store data as input
+     Input("cart-items-store", "data")],
     prevent_initial_call=True
 )
 def update_cart(pathname, cart_items):
@@ -493,15 +369,15 @@ def update_cart(pathname, cart_items):
 @app.callback(
     Output("checkout-feedback", "children"),
     [Input("checkout-button", "n_clicks")],
-    [State("cart-items-store", "data")],  # Retrieve cart items from the store
-    prevent_initial_call=True
+    [State("cart-items-store", "data")],
+    prevent_initial_call=True 
 )
 def handle_checkout(n_clicks, cart_items):
     if not cart_items:
         return html.Div("Coșul este gol!", className="alert alert-warning")
 
-    # Set your local timezone
-    local_tz = pytz.timezone("Europe/Bucharest")  # Replace with your timezone
+    # Set local timezone
+    local_tz = pytz.timezone("Europe/Bucharest")
 
     # Generate a unique order ID
     order_id = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -522,13 +398,11 @@ def handle_checkout(n_clicks, cart_items):
         "INSERT INTO orders (id, product_name, price, order_date) VALUES (?, ?, ?, ?)",
         (order_id, product_details, total_price, local_time)
     )
-
     conn.commit()
     cursor.close()
     conn.close()
-
-    # Clear the cart and display success message
-    cart_items.clear()
+    
+    # cart_items.clear()
     return html.Div("Comanda a fost finalizată cu succes!", className="alert alert-success")
 
 @app.callback(
@@ -739,13 +613,8 @@ def handle_navigation_and_actions(
                 conn.commit()
                 cursor.close()
                 conn.close()
-
-                # Clear the cart
-                cart_items.clear()
-
                 # Redirect to the orders page
                 return "/orders"
-
     raise PreventUpdate
 
 @app.callback(
@@ -756,7 +625,6 @@ def handle_navigation_and_actions(
     prevent_initial_call=True
 )
 def show_delete_confirmation(n_clicks, product_data):
-    # Ensure this callback only triggers when the delete button is clicked
     if n_clicks and product_data:
         product_name = product_data.get("name", "Produs necunoscut")
         return True, f"Ești sigur că vrei să ștergi produsul '{product_name}'?"
@@ -832,6 +700,44 @@ def populate_edit_fields(product_data):
     image_preview = html.Img(src=f"/static/uploads/{os.path.basename(image_url)}", style={"maxHeight": "150px"}) if image_url else None
 
     return name, price, description, image_preview
+
+# Helper function to generate the comment list with delete buttons
+def generate_comment_list(comments):
+    local_tz = pytz.timezone("Europe/Bucharest")
+    return [
+        html.Div(
+            className="border p-3 mb-2 rounded",
+            children=[
+                html.Div("★" * c["stars"] + "☆" * (5 - c["stars"]), className="text-warning mb-1"),  # Star rating
+                html.P(c["text"], className="mb-1"),
+                html.Small(
+                    f"Data: {convert_to_local_time(c['timestamp'], local_tz)}",
+                    className="text-muted"
+                ),
+                html.Button(
+                    "Șterge",
+                    id={'type': 'delete-comment', 'index': c["id"]},
+                    className="btn btn-danger btn-sm mt-2"
+                )
+            ]
+        )
+        for c in comments
+    ]
+
+def convert_to_local_time(timestamp, local_tz):
+    """Helper function to safely convert a timestamp to local time."""
+    if isinstance(timestamp, str):
+        try:
+            utc_time = datetime.fromisoformat(timestamp)
+        except ValueError:
+            return "Invalid timestamp"
+    elif isinstance(timestamp, datetime):
+        utc_time = timestamp
+    else:
+        return "Invalid timestamp"
+
+    # Convert to local timezone
+    return utc_time.astimezone(local_tz).strftime('%Y-%m-%d %H:%M:%S')
 
 if __name__ == "__main__":
     app.run_server(debug=True, host='0.0.0.0', port=8050)
